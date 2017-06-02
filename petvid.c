@@ -43,7 +43,7 @@
 void
 PORT_Init()
 {
-        PORTB = (1 << V_VERT);
+        PORTB = (1 << V_VERT) | (1 << V_DAT);
         DDRB = ((1 << V_DAT) | (1 << V_VERT) | (1 << V_HORZ));
 
         PORTD = 0;

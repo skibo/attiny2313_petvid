@@ -128,7 +128,7 @@ white_line:
         dec     r16
         brne    1b
 
-        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
+        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
 
         ldi     r16, 199	; delay 800 clocks
 2:
@@ -136,7 +136,7 @@ white_line:
         dec     r16
         brne    2b
 
-        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
+        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
 
         ret
 
@@ -155,24 +155,27 @@ patt1_line:
         
         ldi     x_ctr,8
 2:      
-        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
+        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
 
-        ldi     r16, 16	; delay 50 clocks
+        ldi     r16, 15	; delay 50 clocks
 3:
         dec     r16
         brne    3b
+        nop
+        nop
 
-        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
+        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
 
         dec     x_ctr
         brne    4f
         ret
 4:      
 
-        ldi     r16, 16                    ; delay 50 clocks
+        ldi     r16, 15                    ; delay 50 clocks
 5:
         dec     r16
         brne    5b
+        nop
         
         rjmp    2b
 
@@ -191,22 +194,25 @@ patt2_line:
         
         ldi     x_ctr,8
 2:      
-        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
+        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
 
-        ldi     r16, 16	; delay 50 clocks
+        ldi     r16, 15	; delay 50 clocks
 3:
         dec     r16
         brne    3b
+        nop
+        nop
 
         dec     x_ctr
         brne    4f
         ret
 4:      
-        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
-        ldi     r16, 16                    ; delay 50 clocks
+        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
+        ldi     r16, 15                    ; delay 50 clocks
 5:
         dec     r16
         brne    5b
+        nop
         
         rjmp    2b
 
