@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2017 Thomas Skibo.
+ * Copyright (c) 2017 Thomas Skibo. <thomas@skibo.net>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,210 +28,127 @@
 #include <avr/io.h>
 #define F_CPU 20000000UL
 
+#include "petvid.h"
+        
 #define y_ctr		r20
 #define x_ctr		r21
 #define y2_ctr		r22
-#define line_ptr_h	r25
-#define line_ptr_l	r24
 
-/* XXX: These must match defines in petvid.c. */
-#define V_DAT		PB2
-#define V_VERT		PB3
-#define V_HORZ		PB4
-	
 .global video_loop
 video_loop:
-	ldi	r16, (1 << OCF1B) 	; clear counter bit
-	out	_SFR_IO_ADDR(TIFR), r16
+        ldi     y_ctr, 0	; counts 0..199 in active lines
+        ldi     y2_ctr, 0	; counts 0..59, only in inactive lines
 
-top:
-	;; 20 blank lines
-	ldi	y_ctr, 20
-1:
-        rcall	blank_line
-	dec	y_ctr
-	brne	1b
+1:      rjmp    1b              ; let interrupt handle everything.
+
+
+        /* TIMER1 COMPB interrupt occurs at rising edge of V_HORZ signal. */
+.global TIMER1_COMPB_vect
+TIMER1_COMPB_vect:
+        cpi     y2_ctr, 20
+        brsh    1f
+
+        ;; first 20 lines are blank.  Do nothing.
+        ;; 
+        inc     y2_ctr
+        reti
         
-        ;; 200 lines of active video, alternating patt1 and patt2...
-        ldi     y2_ctr, 5
-2:
-        ldi     y_ctr, 20
-3:
-        rcall   patt1_line
-        dec     y_ctr
-        brne    3b
+1:     
+        cpi    	y2_ctr, 20
+        brne    1f
 
-        ldi     y_ctr, 20
-4:
-        rcall   patt2_line
-        dec     y_ctr
-        brne    4b
-        dec     y2_ctr
+        ;; lines 20-219 are visible.
+        ;; 
+        ldi     r16, 114	; ~360 clocks
+2:
+        dec     r16
         brne    2b
 
-	;; 20 blank lines
-	ldi	y_ctr, 20
-1:
-        rcall	blank_line
-	dec	y_ctr
-	brne	1b
-
-;;;  vert sync (20 lines)
+        sbrs    y_ctr, 3
+        rjmp    patt2
         
-        ldi     r16, 231	; ~1180 clocks
+        ;; Pattern 1
+        ldi     x_ctr, 8
+3:      
+        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
+
+        ldi     r16, 16        ; ~50 clocks
+2:
+        dec     r16
+        brne    2b
+        
+        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
+
+        ldi     r16, 15         ; ~50 clocks
+2:
+        dec     r16
+        brne    2b
+        dec     x_ctr
+        brne    3b
+        rjmp    doneln
+        
+patt2:  
+        ;; Pattern 2
+        ldi     x_ctr, 8
+3:      
+        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
+
+        ldi     r16, 16        ; ~50 clocks
+2:
+        dec     r16
+        brne    2b
+        
+        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
+
+        ldi     r16, 15         ; ~50 clocks
+2:
+        dec     r16
+        brne    2b
+        dec     x_ctr
+        brne    3b
+        
+        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
+doneln: 
+        inc     y_ctr
+        cpi     y_ctr, 200
+        brlo    2f
+        inc     y2_ctr
+        ldi     y_ctr, 0
+2:      
+        reti
+        
+1:
+        cpi     y2_ctr, 40
+        brne    1f
+
+        ldi     r16, 231        ; delay ~1180 clocks
 2:
         nop
         nop
         dec     r16
         brne    2b
         
+        ;; start vert
         cbi     _SFR_IO_ADDR(PORTB), V_VERT ; clear VERT signal
-        ldi     y_ctr, 20
-3:
-        rcall   blank_line
-        dec     y_ctr
-        brne    3b
+        inc     y2_ctr
+        reti
+
+1:
+        cpi     y2_ctr, 60
+        brne    1f
         
-        ldi     r16, 231	; ~1180 clocks
+        ldi     r16, 230        ; delay ~1180 clocks
 2:
         nop
         nop
         dec     r16
         brne    2b
         
+        ;; stop vert
         sbi     _SFR_IO_ADDR(PORTB), V_VERT ; set VERT signal
-        
-        rjmp    top
-
-        
-blank_line:
-        lds     r16, TIFR
-	sbrs	r16, OCF1B 		; wait for timer match
-	rjmp	blank_line
-
-	ldi	r16, (1 << OCF1B) 	; clear timer match status bit
-	out	_SFR_IO_ADDR(TIFR), r16
-
-	ret
-
-
-white_line:
-        lds     r16, TIFR
-	sbrs	r16, OCF1B 		; wait for timer match
-	rjmp	white_line
-
-	ldi	r16, (1 << OCF1B) 	; clear timer match status bit
-	out	_SFR_IO_ADDR(TIFR), r16
-        
-        ldi     r16, 118        ; delay 360 clocks
+        ldi     y2_ctr, 0
+        reti
 1:
-        dec     r16
-        brne    1b
+        inc     y2_ctr
+        reti
 
-        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
-
-        ldi     r16, 199	; delay 800 clocks
-2:
-        nop
-        dec     r16
-        brne    2b
-
-        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
-
-        ret
-
-patt1_line:
-        lds     r16, TIFR
-	sbrs	r16, OCF1B 		; wait for timer match
-	rjmp	patt1_line
-
-	ldi	r16, (1 << OCF1B) 	; clear timer match status bit
-	out	_SFR_IO_ADDR(TIFR), r16
-        
-        ldi     r16, 118        ; delay 360 clocks
-1:
-        dec     r16
-        brne    1b
-        
-        ldi     x_ctr,8
-2:      
-        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
-
-        ldi     r16, 15	; delay 50 clocks
-3:
-        dec     r16
-        brne    3b
-        nop
-        nop
-
-        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
-
-        dec     x_ctr
-        brne    4f
-        ret
-4:      
-
-        ldi     r16, 15                    ; delay 50 clocks
-5:
-        dec     r16
-        brne    5b
-        nop
-        
-        rjmp    2b
-
-patt2_line:
-        lds     r16, TIFR
-	sbrs	r16, OCF1B 		; wait for timer match
-	rjmp	patt2_line
-
-	ldi	r16, (1 << OCF1B) 	; clear timer match status bit
-	out	_SFR_IO_ADDR(TIFR), r16
-        
-        ldi     r16, 118        ; delay 360 clocks
-1:
-        dec     r16
-        brne    1b
-        
-        ldi     x_ctr,8
-2:      
-        sbi     _SFR_IO_ADDR(PORTB), V_DAT ; clr pixel
-
-        ldi     r16, 15	; delay 50 clocks
-3:
-        dec     r16
-        brne    3b
-        nop
-        nop
-
-        dec     x_ctr
-        brne    4f
-        ret
-4:      
-        cbi     _SFR_IO_ADDR(PORTB), V_DAT ; set pixel
-        ldi     r16, 15                    ; delay 50 clocks
-5:
-        dec     r16
-        brne    5b
-        nop
-        
-        rjmp    2b
-
-vert_sync:
-	ldi	y_ctr, 20
-1:      
-        lds     r16, TIFR
-        sbrs    r16, OCF1B
-        rjmp    1b
-
-        cbi     _SFR_IO_ADDR(PORTB), V_VERT ; start vsync
-
-	ldi	r16, (1 << OCF1B) 	; clear timer match status bit
-	out	_SFR_IO_ADDR(TIFR), r16
-
-        dec     y_ctr
-        brne    1b
-        
-        sbi     _SFR_IO_ADDR(PORTB), V_VERT ; end vsync
-
-        ret
-        

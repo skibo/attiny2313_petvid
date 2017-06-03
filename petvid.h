@@ -22,60 +22,18 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * petvid.c
- *
+ */
+
+/*
  *	Atmel ATtiny2313 generates video test pattern for Commodore PET.
+ *	I/O assignments:
  *
  *	PB2 =	Video data
  *	PB3 =	VERT
  *	PB4 =	HORZ
  */
 
-#include <avr/interrupt.h>
-#include <avr/io.h>
-#define F_CPU 20000000UL
-#include <util/delay.h>
-
-#include "petvid.h"
-
-void
-PORT_Init()
-{
-        PORTB = (1 << V_VERT) | (1 << V_DAT);
-        DDRB = ((1 << V_DAT) | (1 << V_VERT) | (1 << V_HORZ));
-
-        PORTD = 0;
-        DDRD = 0;
-}
-
-void
-Timer_Init()
-{
-        TCCR1A = (1 << COM1B0) | (1 << COM1B1) | (1 << WGM11) | (1 << WGM10);
-        TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS10);
-
-        /* HORZ signal period = 1280 50ns clocks for 64us. */
-        OCR1AH = 0x05;
-        OCR1AL = 0x00;
-
-        /* HORZ signal set for 480, clear for 800 clocks. */
-        OCR1BH = 0x03;
-        OCR1BL = 0x20;
-
-        /* Enable interrupt. */
-        TIMSK = (1 << OCIE1B);
-}
-
-int
-main(void)
-{	
-        PORT_Init();
-        Timer_Init();
-        sei();
-        
-        video_loop();
-        
-        return 0;
-}
+#define V_DAT		PB2
+#define V_VERT		PB3
+#define V_HORZ		PB4
 
