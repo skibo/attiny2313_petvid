@@ -35,7 +35,6 @@ petvid.elf: $(OBJS)
 	$(OBJSIZE) -x $< >> $@
 
 program: petvid.hex
-	avrdude -p t2313 -U lfuse:w:0xEF:m
 	avrdude -p t2313 -U petvid.hex
 
 clean:
