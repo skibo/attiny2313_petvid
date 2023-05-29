@@ -41,7 +41,8 @@ video_loop:
 	ldi     y_ctr, 0	; counts 0..199 in active lines
 	ldi     y2_ctr, 0	; counts 0..59, only in inactive lines
 
-1:      rjmp    1b              ; let interrupt handle everything.
+1:      sleep			; let interrupt handle everything.
+	rjmp	1b
 
 
 	/* TIMER1 COMPB interrupt occurs at rising edge of V_HORZ signal. */

@@ -77,6 +77,10 @@ main(void)
 {
 	PORT_Init();
 	Timer_Init();
+
+	/* Enable sleep instruction. */
+	MCUCR |= (1 << SE);
+
 	sei();
 
 	video_loop();
