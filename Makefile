@@ -14,6 +14,8 @@ CC_OPTS=$(CC_FLAGS) -mmcu=$(DEVICE)
 LD_FLAGS=-g
 LD_OPTS=$(LD_FLAGS) -mmcu=$(DEVICE)
 
+.PHONY: default clean program
+
 default: $(TARGETS)
 
 petvid.elf: $(OBJS)
@@ -31,6 +33,10 @@ petvid.elf: $(OBJS)
 %.lst: %.elf
 	$(OBJDUMP) -S -d $< > $@
 	$(OBJSIZE) -x $< >> $@
+
+program: petvid.hex
+	avrdude -p t2313 -U lfuse:w:0xEF:m
+	avrdude -p t2313 -U petvid.hex
 
 clean:
 	$(RM) *.o *.elf *.v *.lst *.hex
