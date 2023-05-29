@@ -30,6 +30,9 @@
  *	PB2 =	Video data
  *	PB3 =	VERT
  *	PB4 =	HORZ
+ *
+ *	Expects 20 Mhz crystal.  Program lfuse to 0xEF:
+ *		avrdude -p t2313 -U lfuse:w:0xEF:m
  */
 
 #include <avr/interrupt.h>
@@ -39,43 +42,44 @@
 
 #include "petvid.h"
 
+extern void video_loop(void);
+
 void
 PORT_Init()
 {
-        PORTB = (1 << V_VERT) | (1 << V_DAT);
-        DDRB = ((1 << V_DAT) | (1 << V_VERT) | (1 << V_HORZ));
+	PORTB = (1 << V_VERT) | (1 << V_DAT);
+	DDRB = ((1 << V_DAT) | (1 << V_VERT) | (1 << V_HORZ));
 
-        PORTD = 0;
-        DDRD = 0;
+	PORTD = 0;
+	DDRD = 0;
 }
 
 void
 Timer_Init()
 {
-        TCCR1A = (1 << COM1B0) | (1 << COM1B1) | (1 << WGM11) | (1 << WGM10);
-        TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS10);
+	TCCR1A = (1 << COM1B0) | (1 << COM1B1) | (1 << WGM11) | (1 << WGM10);
+	TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS10);
 
-        /* HORZ signal period = 1280 50ns clocks for 64us. */
-        OCR1AH = 0x05;
-        OCR1AL = 0x00;
+	/* HORZ signal period = 1280 50ns clocks for 64us. */
+	OCR1AH = 0x05;
+	OCR1AL = 0x00;
 
-        /* HORZ signal set for 480, clear for 800 clocks. */
-        OCR1BH = 0x03;
-        OCR1BL = 0x20;
+	/* HORZ signal set for 480, clear for 800 clocks. */
+	OCR1BH = 0x03;
+	OCR1BL = 0x20;
 
-        /* Enable interrupt. */
-        TIMSK = (1 << OCIE1B);
+	/* Enable interrupt. */
+	TIMSK = (1 << OCIE1B);
 }
 
 int
 main(void)
-{	
-        PORT_Init();
-        Timer_Init();
-        sei();
-        
-        video_loop();
-        
-        return 0;
-}
+{
+	PORT_Init();
+	Timer_Init();
+	sei();
 
+	video_loop();
+
+	return 0;
+}
