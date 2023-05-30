@@ -62,7 +62,7 @@ TIMER1_COMPB_vect:
 
 	;; lines 20-219 are visible.
 	;;
-	ldi     r16, 114	; ~360 clocks
+	ldi     r16, 113	; ~340 clocks
 2:
 	dec     r16
 	brne    2b
