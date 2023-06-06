@@ -1,0 +1,156 @@
+
+An Atmel ATTiny2313 creates a test-pattern video signal for Commodore
+PET displays (9" VDUs only)
+
+I/O pin assignments:
+  PB2 = Video Data
+  PB3 = VERT Drive
+  PB4 = HORZ Drive
+
+This expects a 20 Mhz crystal.  Program lfuse to 0xEF: (External Oscillator,
+no divider.)
+
+        avrdude -p t2313 -U lfuse:w:0xEF:m
+
+
+---------------------------------
+              WARNING! 
+---------------------------------
+
+It has come to my attention that it may be possible to damage a PET display
+by providing an incorrect Horizontal Drive signal, particularly if the
+frequency were too slow.  The details of this possible damage to the
+horizontal output transistor can be found in the following document
+by Hugo Holden:
+
+https://www.worldphaco.com/uploads/RESTORING%20THE%20%20PET%20COMPUTER%209.pdf
+
+So, please be sure to use the correct external oscillator and be sure the
+lfuse is programmed correctly.  Inspect the signals with an oscilloscope
+before applying to a PET display.  The correct timing of the signals is
+documented below:
+
+
+---------------------------------------
+PET Video Signal Notes:  (9" VDUs only)
+---------------------------------------
+
+HORZ Drive is a 5v signal with a period of exactly 64us and corresponds to each
+horizontal line of the display.  The signal is high for 24us and low for 40us:
+
+    <----------------- 64us -------------------------------------->
+    <-------- 24us -------->
+H
+O   +-----------------------+                                      +------
+R   |                       |                                      |
+Z   |                       |                                      |
+----+                       +--------------------------------------+
+
+
+Video Data is aligned to the HORZ Drive signal such that the start of data
+starts exactly 18us after the rising edge of the HORZ Drive signal and is
+active for 40us (1us for each 8 pixels / character across).  A 5v level
+is black and 0v is white/green.  The Video Data signal must remain high in
+inactive regions (horizontal or vertical blanking).
+
+
+    |                                                              |
+    |                                                              |
+
+    <------- 18us -->
+                     <----------------------- 40us -------->
+                                                            <-6us->
+---------------------++++++++++++++++++++++++++++++++++++++++----------
+V                    ||||||||||||||||||||||||||||||||||||||||
+D                    ||||||||||||||||||||||||||||||||||||||||
+A                    ||||||||||||||||||||||||||||||||||||||||
+T                    ++++++++++++++++++++++++++++++++++++++++
+
+
+VERT Drive is a 5v signal with a period of exactly 260 horizontal lines
+or 16,640us.  The signal is low for 20 lines or 1,280us:
+
+         <------------------------ 16,640us ------------------------------->
+         <- 1,280us ->
+---------+            +---------------//-----------------------+            +---
+V        |            |                                        |            |
+E        |            |                                        |            |
+R        |            |                                        |            |
+T        +------------+                                        +------------+
+
+The active lines of the display start 20 lines or 1,280us after the rising
+edge of VERT Drive and lasts 200 lines or 12,800us.  Then There are 20
+inactive lines or 1,280us until the falling edge of the VERT Drive signal:
+
+
+-------------+    +------------------------//-----------------------+    +-----
+V            |    |                                                 |    |
+E            |    |                                                 |    |
+R            |    |                                                 |    |
+T            +----+                                                 +----+
+
+             |    |                                                 |
+             |    |                                                 |
+
+             <--->       1,280us (VERT drive)
+                  <----> 1,280us (top blank)
+                        <-------- 12,800us (video on) -------->
+                                      1,280us (bottom blank)   <--->
+
+++++++++----------------+++++++++++++++++++//+++++++++++++++++++----------
+V|||||||                |||||||||||||||||||//|||||||||||||||||||
+D|||||||                |||||||||||||||||||//|||||||||||||||||||
+A|||||||                |||||||||||||||||||//|||||||||||||||||||
+T|||||||                +++++++++++++++++++//+++++++++++++++++++
+
+
+The signal "VIDEO ON/SYNC" corresponds to the active lines of video
+data and is used to provide periodic (about 60.1hz) interrupts to the 6502.
+The interrupt occurs on the falling edge of SYNC.  Early PETs also
+monitor this signal to avoid writing to video RAM during active video lines
+in order to prevent "snow" on the display.  (This signal is not
+created by this circuit and the VDU doesn't use it.  It's just here for
+info.)
+
+       |                |                                      |
+       |                |                                      |
+
+
+       <---------------------16,640us ------------------------>
+       <---3,840us ---->
+-------+                +--------------------------------------+
+S      |                |                                      |
+Y      |                |                                      |
+N      |                |                                      |
+C      |                |                                      |
+       +----------------+                                      +-----
+
+
+
+Although I suspect it isn't important, here is the relationship between the
+HORZ Drive and VERT Drive signals.  The VERT Drive signal falls 5us before
+the rising edge of the HORZ Drive signal.  The rising edge of the VERT Drive
+signal also occurs 5us before the rising edge of HORZ.
+
+    <----------------- 64us -------------------------------------->
+
+----+                                       +-----------------------+
+H   |                                       |                       |
+O   |                                       |                       |
+R   |                                       |                       |
+Z   +---------------------------------------+                       +-----
+
+    <------------ 35us --------------->
+
+                                       <---> 5us
+---------------------------------------+
+V                                      |
+E                                      |
+R                                      |
+T                                      +----------------------------------
+
+
+----
+Thomas Skibo
+May 2023
+
