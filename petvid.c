@@ -61,12 +61,12 @@ Timer_Init()
 	TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS10);
 
 	/* HORZ signal period = 1280 50ns clocks for 64us. */
-	OCR1AH = 0x05;
-	OCR1AL = 0x00;
+	OCR1AH = 0x04;
+	OCR1AL = 0xff;
 
 	/* HORZ signal set for 480, clear for 800 clocks. */
 	OCR1BH = 0x03;
-	OCR1BL = 0x20;
+	OCR1BL = 0x1f;
 
 	/* Enable interrupt. */
 	TIMSK = (1 << OCIE1B);
