@@ -12,6 +12,9 @@ no divider.)
 
         avrdude -p t2313 -U lfuse:w:0xEF:m
 
+Program the firmware:
+
+	avrdude -p t2313 -U petvid.hex
 
 ---------------------------------
               WARNING! 
